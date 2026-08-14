@@ -100,6 +100,7 @@ https://ujwal164.github.io/MyProjects/
 📌 Future Projects
 
 - Dice Game
+- QR Generator
 - TinDog
 - Portfolio Website
 - Blog Website
