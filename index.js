@@ -1,88 +1,46 @@
-// Reveal animations
-const revealEls = document.querySelectorAll(
-  ".reveal, .reveal-stagger"
-);
-
-const io = new IntersectionObserver(
-  (entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add("in");
-        io.unobserve(entry.target);
-      }
-    });
-  },
-  {
-    threshold: 0.18,
-  }
-);
-
-revealEls.forEach((el) => io.observe(el));
+// Set current year in footer
+document.getElementById("year").textContent =
+  new Date().getFullYear();
 
 
-// Magnetic buttons
-document.querySelectorAll("[data-magnetic]").forEach((btn) => {
-  btn.addEventListener("mousemove", (e) => {
-    const rect = btn.getBoundingClientRect();
+// Cursor-tracked spotlight (dynamic hero lighting)
+const heroBg = document.getElementById("heroBg");
+const spotlight = document.getElementById("spotlight");
 
-    const x = e.clientX - rect.left - rect.width / 2;
-    const y = e.clientY - rect.top - rect.height / 2;
+function moveSpot(x, y) {
+  const rect = heroBg.getBoundingClientRect();
 
-    btn.style.transform = `translate(${x * 0.25}px, ${y * 0.35}px)`;
-  });
+  const px = ((x - rect.left) / rect.width) * 100;
+  const py = ((y - rect.top) / rect.height) * 100;
 
-  btn.addEventListener("mouseleave", () => {
-    btn.style.transform = "translate(0, 0)";
-  });
+  spotlight.style.setProperty("--mx", `${px}%`);
+  spotlight.style.setProperty("--my", `${py}%`);
+}
+
+heroBg.addEventListener("mousemove", (e) => {
+  moveSpot(e.clientX, e.clientY);
+});
+
+heroBg.addEventListener("mouseleave", () => {
+  spotlight.style.setProperty("--mx", "70%");
+  spotlight.style.setProperty("--my", "20%");
 });
 
 
-// Count-up statistics
-const statVals = document.querySelectorAll(".stat .value");
+// Floating dust particles
+const dustField = document.getElementById("dustField");
+const DUST_COUNT = 26;
 
-const statIo = new IntersectionObserver(
-  (entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        const el = entry.target;
-        const target = parseInt(el.getAttribute("data-count"), 10);
+for (let i = 0; i < DUST_COUNT; i++) {
+  const particle = document.createElement("span");
 
-        const span = el.querySelector("span");
-        let current = 0;
+  particle.style.left = `${Math.random() * 100}%`;
+  particle.style.bottom = `${Math.random() * 40}%`;
+  particle.style.animationDelay = `${Math.random() * 14}s`;
+  particle.style.animationDuration = `${10 + Math.random() * 10}s`;
+  particle.style.opacity = (
+    0.3 + Math.random() * 0.5
+  ).toFixed(2);
 
-        const step = Math.max(
-          1,
-          Math.round(target / 30)
-        );
-
-        const tick = () => {
-          current = Math.min(target, current + step);
-          span.textContent = current;
-
-          if (current < target) {
-            requestAnimationFrame(tick);
-          }
-        };
-
-        tick();
-        statIo.unobserve(el);
-      }
-    });
-  },
-  {
-    threshold: 0.5,
-  }
-);
-
-statVals.forEach((el) => statIo.observe(el));
-
-
-// Hero image parallax effect
-window.addEventListener("scroll", () => {
-  const y = window.scrollY;
-  const photo = document.querySelector(".hero-photo");
-
-  if (photo && y < window.innerHeight) {
-    photo.style.transform = `scale(1.06) translateY(${y * 0.06}px)`;
-  }
-});
+  dustField.appendChild(particle);
+}
