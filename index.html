@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>MY PROJECT</title>
-<meta name="description" content="A living archive of builds, one classical study at a time." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,340;0,9..144,440;0,9..144,600;0,9..144,700;1,9..144,440;1,9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -21,12 +20,11 @@
       <div class="hero-bg-tint"></div>
       <div class="hero-grain"></div>
       <div class="dust" id="dustField"></div>
-      <div class="spotlight" id="spotlight"></div>
       <div class="hero-vignette"></div>
     </div>
 
     <div class="hero-content">
-      <h1 class="hero-word">MY PROJECT<span class="accent-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z"/></svg></span></h1>
+      <h1 class="hero-word">MY PROJECT</h1>
       <div class="hero-side reveal">
     </div>
   </header>
@@ -290,26 +288,6 @@ let pendingSpot = null;
 
 function updateHeroRect(){ heroRect = heroBg.getBoundingClientRect(); }
 window.addEventListener('resize', updateHeroRect, { passive: true });
-
-function applySpot(x, y){
-  const px = ((x - heroRect.left) / heroRect.width) * 100;
-  const py = ((y - heroRect.top) / heroRect.height) * 100;
-  spotlight.style.setProperty('--mx', px + '%');
-  spotlight.style.setProperty('--my', py + '%');
-  pendingSpot = null;
-}
-
-heroBg.addEventListener('mousemove', (e) => {
-  const x = e.clientX, y = e.clientY;
-  if (pendingSpot === null){
-    pendingSpot = requestAnimationFrame(() => applySpot(x, y));
-  }
-}, { passive: true });
-
-heroBg.addEventListener('mouseleave', () => {
-  spotlight.style.setProperty('--mx', '70%');
-  spotlight.style.setProperty('--my', '20%');
-});
 
 // Dust particles (fewer on small screens = less paint work)
 const dustField = document.getElementById('dustField');
