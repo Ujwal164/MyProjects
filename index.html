@@ -282,25 +282,39 @@
 <script>
 document.getElementById('year').textContent = new Date().getFullYear();
 
-// Cursor-tracked spotlight across the hero background (dynamic lighting)
+// Cursor-tracked spotlight — rAF-throttled, cached rect
 const heroBg = document.getElementById('heroBg');
 const spotlight = document.getElementById('spotlight');
-function moveSpot(x, y){
-  const rect = heroBg.getBoundingClientRect();
-  const px = ((x - rect.left) / rect.width) * 100;
-  const py = ((y - rect.top) / rect.height) * 100;
+let heroRect = heroBg.getBoundingClientRect();
+let pendingSpot = null;
+
+function updateHeroRect(){ heroRect = heroBg.getBoundingClientRect(); }
+window.addEventListener('resize', updateHeroRect, { passive: true });
+
+function applySpot(x, y){
+  const px = ((x - heroRect.left) / heroRect.width) * 100;
+  const py = ((y - heroRect.top) / heroRect.height) * 100;
   spotlight.style.setProperty('--mx', px + '%');
   spotlight.style.setProperty('--my', py + '%');
+  pendingSpot = null;
 }
-heroBg.addEventListener('mousemove', (e) => moveSpot(e.clientX, e.clientY));
+
+heroBg.addEventListener('mousemove', (e) => {
+  const x = e.clientX, y = e.clientY;
+  if (pendingSpot === null){
+    pendingSpot = requestAnimationFrame(() => applySpot(x, y));
+  }
+}, { passive: true });
+
 heroBg.addEventListener('mouseleave', () => {
   spotlight.style.setProperty('--mx', '70%');
   spotlight.style.setProperty('--my', '20%');
 });
 
-// Dust particles
+// Dust particles (fewer on small screens = less paint work)
 const dustField = document.getElementById('dustField');
-const DUST_COUNT = 26;
+const DUST_COUNT = window.innerWidth < 768 ? 12 : 26;
+const frag = document.createDocumentFragment();
 for(let i=0;i<DUST_COUNT;i++){
   const s = document.createElement('span');
   s.style.left = Math.random()*100 + '%';
@@ -308,8 +322,9 @@ for(let i=0;i<DUST_COUNT;i++){
   s.style.animationDelay = (Math.random()*14) + 's';
   s.style.animationDuration = (10 + Math.random()*10) + 's';
   s.style.opacity = (0.3 + Math.random()*0.5).toFixed(2);
-  dustField.appendChild(s);
+  frag.appendChild(s);
 }
+dustField.appendChild(frag);
 
 // Scroll reveal
 const revealEls = document.querySelectorAll('.reveal, .reveal-stagger');
@@ -323,14 +338,19 @@ const io = new IntersectionObserver((entries) => {
 }, { threshold: 0.18 });
 revealEls.forEach(el => io.observe(el));
 
-// Magnetic buttons
+// Magnetic buttons — rAF-throttled
 document.querySelectorAll('[data-magnetic]').forEach(btn => {
+  let magPending = null;
   btn.addEventListener('mousemove', (e) => {
-    const r = btn.getBoundingClientRect();
-    const x = e.clientX - r.left - r.width/2;
-    const y = e.clientY - r.top - r.height/2;
-    btn.style.transform = `translate(${x*0.25}px, ${y*0.35}px)`;
-  });
+    if (magPending) return;
+    magPending = requestAnimationFrame(() => {
+      const r = btn.getBoundingClientRect();
+      const x = e.clientX - r.left - r.width/2;
+      const y = e.clientY - r.top - r.height/2;
+      btn.style.transform = `translate(${x*0.25}px, ${y*0.35}px)`;
+      magPending = null;
+    });
+  }, { passive: true });
   btn.addEventListener('mouseleave', () => { btn.style.transform = 'translate(0,0)'; });
 });
 
@@ -356,14 +376,20 @@ const statIo = new IntersectionObserver((entries) => {
 }, { threshold: 0.5 });
 statVals.forEach(el => statIo.observe(el));
 
-// Subtle parallax on the hero photo as the page scrolls
+// Parallax on hero photo — rAF-throttled, only while in view
+const heroPhoto = document.querySelector('.hero-photo');
+let scrollPending = false;
 window.addEventListener('scroll', () => {
-  const y = window.scrollY;
-  const photo = document.querySelector('.hero-photo');
-  if(photo && y < window.innerHeight){
-    photo.style.transform = `scale(1.06) translateY(${y*0.06}px)`;
-  }
-});
+  if (scrollPending) return;
+  scrollPending = true;
+  requestAnimationFrame(() => {
+    const y = window.scrollY;
+    if (heroPhoto && y < window.innerHeight){
+      heroPhoto.style.transform = `scale(1.06) translateY(${y*0.06}px)`;
+    }
+    scrollPending = false;
+  });
+}, { passive: true });
 </script>
 </body>
 </html>
