@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>React Hooks Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one counter, five hooks. Each section = what it's for, the code, and the same code running live. */
+:root {
+  --bg: #F2F4F7;
+  --surface: #FFFFFF;
+  --ink: #131925;
+  --muted: #586274;
+  --rule: #D9DEE6;
+  --accent: #0B7480;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #DDEFF0;
+  --code-bg: #111723;
+  --code-fg: #DAE1EC;
+  --code-hook: #6FDDD3;
+  --code-str: #F0C27C;
+  --code-comment: #7E899B;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1118; --surface: #151B25; --ink: #E5E9F0; --muted: #98A2B3; --rule: #252D3A;
+    --accent: #4CC7BE; --accent-ink: #06201E; --accent-soft: #12302E;
+    --code-bg: #090D13; --code-fg: #D6DEEA; --code-hook: #6FDDD3; --code-str: #F0C27C; --code-comment: #76829A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1118; --surface: #151B25; --ink: #E5E9F0; --muted: #98A2B3; --rule: #252D3A;
+  --accent: #4CC7BE; --accent-ink: #06201E; --accent-soft: #12302E;
+  --code-bg: #090D13; --code-fg: #D6DEEA; --code-hook: #6FDDD3; --code-str: #F0C27C; --code-comment: #76829A;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 15px/1.6 var(--font-body);
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg);
+}
+.wrap {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+header.intro { padding-block: 40px 24px; display: grid; gap: 10px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2.2rem, 6vw, 3.6rem); font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+.lede { max-width: 62ch; color: var(--muted); margin: 0; font-size: 1.05rem; }
+
+nav.hooks {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule);
+}
+nav.hooks .wrap { display: flex; gap: 6px; overflow-x: auto; padding-block: 10px; }
+nav.hooks a {
+  flex: none;
+  font: 500 0.85rem var(--font-mono);
+  color: var(--ink); text-decoration: none;
+  padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px;
+  background: var(--surface);
+}
+nav.hooks a:hover { border-color: var(--accent); color: var(--accent); }
+nav.hooks a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+
+/* Picker table */
+.picker { padding-block: 28px 8px; }
+.eyebrow {
+  font: 600 0.72rem var(--font-body); text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--accent); margin: 0 0 8px;
+}
+.table-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 560px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font: 600 0.75rem var(--font-body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+td code, p code, li code { font: 500 0.88em var(--font-mono); }
+td:first-child code { color: var(--accent); }
+.yes { color: var(--accent); font-weight: 600; }
+.no { color: var(--muted); }
+
+/* Hook sections */
+section.hook { padding-block: 40px; border-bottom: 1px solid var(--rule); scroll-margin-top: 60px; }
+.hook-head { display: grid; gap: 6px; margin-bottom: 18px; }
+.hook-head h2 { font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 800; letter-spacing: -0.01em; }
+.hook-head h2 span { font-family: var(--font-mono); font-weight: 500; font-size: 0.55em; color: var(--muted); margin-left: 10px; letter-spacing: 0; }
+.when { margin: 0; max-width: 64ch; font-size: 1.05rem; }
+.when b { color: var(--accent); font-weight: 600; }
+.rules { margin: 4px 0 0; padding-left: 1.2em; color: var(--muted); max-width: 70ch; display: grid; gap: 2px; }
+
+.pair { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.pair > * { min-width: 0; }
+@media (max-width: 880px) { .pair { grid-template-columns: 1fr; } }
+
+pre.code {
+  margin: 0; background: var(--code-bg); color: var(--code-fg);
+  border-radius: 10px; padding: 16px 18px; overflow-x: auto;
+  font: 400 0.82rem/1.65 var(--font-mono); tab-size: 2;
+}
+.c-hook { color: var(--code-hook); font-weight: 500; }
+.c-str { color: var(--code-str); }
+.c-com { color: var(--code-comment); font-style: italic; }
+
+.demo {
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px; display: grid; gap: 14px;
+}
+.demo-label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.demo-label .eyebrow { margin: 0; }
+.try { margin: 0; font-size: 0.85rem; color: var(--muted); }
+.big {
+  font: 800 4rem/1 var(--font-display); font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select, input {
+  font: 500 0.9rem var(--font-body); color: var(--ink);
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 8px;
+  padding: 8px 14px; min-height: 40px;
+}
+button { cursor: pointer; transition: border-color 120ms ease-out, background-color 120ms ease-out; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.sq { min-width: 44px; font-size: 1.15rem; padding: 6px 12px; }
+input { min-width: 0; width: 160px; }
+
+.stats { display: flex; gap: 18px; flex-wrap: wrap; font: 500 0.82rem var(--font-mono); color: var(--muted); }
+.stats b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.log {
+  list-style: none; margin: 0; padding: 10px 12px; border-radius: 8px;
+  background: var(--bg); border: 1px dashed var(--rule);
+  font: 400 0.78rem/1.55 var(--font-mono); min-height: 60px;
+  display: grid; gap: 2px; align-content: start; overflow-x: auto;
+}
+.log li { white-space: nowrap; }
+.log li:first-child { color: var(--accent); }
+.log .empty { color: var(--muted); white-space: normal; }
+
+.themed { border-radius: 8px; padding: 12px; transition: background-color 150ms ease-out; }
+.themed.dark { background: var(--ink); color: var(--bg); }
+.themed.light { background: var(--accent-soft); }
+
+.tree { display: grid; gap: 8px; }
+.tree .node {
+  border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; display: grid; gap: 8px;
+}
+.tree .node > .tag { font: 500 0.75rem var(--font-mono); color: var(--muted); }
+.tree .provider { border-color: var(--accent); background: var(--accent-soft); }
+.tree .kids { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (max-width: 420px) { .tree .kids { grid-template-columns: 1fr; } }
+.tree .kids .node { background: var(--surface); }
+.tree .big { font-size: 2.6rem; }
+
+footer { padding-block: 32px 48px; color: var(--muted); font-size: 0.9rem; }
+footer p { margin: 0; max-width: 70ch; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="wrap intro">
+  <p class="eyebrow">One counter, five hooks</p>
+  <h1>React Hooks Lab</h1>
+  <p class="lede">Each section shows when to reach for the hook, the code, and that same code running live. Click the buttons and watch the log to see what React actually does.</p>
+</header>
+
+<nav class="hooks" aria-label="Hooks">
+  <div class="wrap">
+    <a href="#usestate">useState</a>
+    <a href="#useeffect">useEffect</a>
+    <a href="#usecontext">useContext</a>
+    <a href="#useref">useRef</a>
+    <a href="#usereducer">useReducer</a>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="picker">
+    <p class="eyebrow">Which hook do I need?</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Hook</th><th>Reach for it when</th><th>Redraws the screen?</th></tr></thead>
+        <tbody>
+          <tr><td><code>useState</code></td><td>A value should change what's on the screen</td><td class="yes">Yes, when you call the setter</td></tr>
+          <tr><td><code>useEffect</code></td><td>You need to do something outside React after a render: fetch, timer, page title</td><td class="no">No, it runs after a redraw</td></tr>
+          <tr><td><code>useContext</code></td><td>Many components need the same value, and passing props down every level gets messy</td><td class="yes">Yes, when the shared value changes</td></tr>
+          <tr><td><code>useRef</code></td><td>You want to remember a value without redrawing, or reach a real HTML element</td><td class="no">No, never</td></tr>
+          <tr><td><code>useReducer</code></td><td>State has several actions or related values, and you want all the update logic in one place</td><td class="yes">Yes, when you dispatch</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <section class="hook" id="usestate">
+    <div class="hook-head">
+      <h2>useState <span>[value, setValue]</span></h2>
+      <p class="when"><b>Use it when</b> a value should change what's on the screen.</p>
+      <ul class="rules">
+        <li>Calling <code>setCount</code> tells React to redraw with the new value.</li>
+        <li>When the new value depends on the old one, write <code>setCount(prev =&gt; prev + 1)</code>.</li>
+      </ul>
+    </div>
+    <div class="pair">
+      <pre class="code" data-code="state"></pre>
+      <div class="demo"><div class="demo-label"><p class="eyebrow">Live</p><p class="try">Click any button</p></div><div id="demo-state"></div></div>
+    </div>
+  </section>
+
+  <section class="hook" id="useeffect">
+    <div class="hook-head">
+      <h2>useEffect <span>(fn, [deps])</span></h2>
+      <p class="when"><b>Use it when</b> you need to do something outside React after a render: fetch data, start a timer, change the page title.</p>
+      <ul class="rules">
+        <li>It always runs once after the first render.</li>
+        <li>After that, the array decides: <code>[]</code> never again, <code>[count]</code> when count changes, no array after every render.</li>
+        <li>Return a function from it to clean up, for example to clear a timer.</li>
+      </ul>
+    </div>
+    <div class="pair">
+      <pre class="code" data-code="effect"></pre>
+      <div class="demo"><div class="demo-label"><p class="eyebrow">Live</p><p class="try">Toggle the theme 3 times: renders go up, effect runs don't</p></div><div id="demo-effect"></div></div>
+    </div>
+  </section>
+
+  <section class="hook" id="usecontext">
+    <div class="hook-head">
+      <h2>useContext <span>(SomeContext)</span></h2>
+      <p class="when"><b>Use it when</b> many components need the same value and passing props down every level gets messy.</p>
+      <ul class="rules">
+        <li>Create the context once with <code>createContext()</code>.</li>
+        <li>Wrap the components in <code>&lt;CountContext.Provider value={...}&gt;</code>.</li>
+        <li>Any component inside can read it with <code>useContext(CountContext)</code>, with no props needed.</li>
+      </ul>
+    </div>
+    <div class="pair">
+      <pre class="code" data-code="context"></pre>
+      <div class="demo"><div class="demo-label"><p class="eyebrow">Live</p><p class="try">Two separate components share one count</p></div><div id="demo-context"></div></div>
+    </div>
+  </section>
+
+  <section class="hook" id="useref">
+    <div class="hook-head">
+      <h2>useRef <span>{ current: value }</span></h2>
+      <p class="when"><b>Use it when</b> you want to remember a value without redrawing the screen, or reach a real HTML element.</p>
+      <ul class="rules">
+        <li>Changing <code>clicks.current</code> keeps the value but doesn't redraw.</li>
+        <li><code>ref={inputRef}</code> on an element gives you that element in <code>inputRef.current</code>.</li>
+      </ul>
+    </div>
+    <div class="pair">
+      <pre class="code" data-code="ref"></pre>
+      <div class="demo"><div class="demo-label"><p class="eyebrow">Live</p><p class="try">Click "ref +1" three times, then "state +1"</p></div><div id="demo-ref"></div></div>
+    </div>
+  </section>
+
+  <section class="hook" id="usereducer">
+    <div class="hook-head">
+      <h2>useReducer <span>[state, dispatch]</span></h2>
+      <p class="when"><b>Use it when</b> state has several actions or related values and you want all the update logic in one function.</p>
+      <ul class="rules">
+        <li><code>dispatch({ type: "increment" })</code> sends an action. It describes what happened.</li>
+        <li>The reducer gets the old state and the action, and returns a <em>new</em> state object. Never change the old one.</li>
+      </ul>
+    </div>
+    <div class="pair">
+      <pre class="code" data-code="reducer"></pre>
+      <div class="demo"><div class="demo-label"><p class="eyebrow">Live</p><p class="try">Change the step, then press + a few times</p></div><div id="demo-reducer"></div></div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>The live demos run real React 18 hooks. The code on the left is written in JSX, which is how you'd write it in your own app. Remember: hooks go at the top of a component, never inside an <code>if</code>, a loop or a click handler.</p>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script>
+// ---------- Code shown on the page (JSX) ----------
+const CODE = {
+state: `function Counter() {
+  const [count, setCount] = useState(0);
+
+  return (
+    <>
+      <h2>{count}</h2>
+      <button onClick={() => setCount(prev => prev - 1)}>−</button>
+      <button onClick={() => setCount(prev => prev + 1)}>+</button>
+      <button onClick={() => setCount(0)}>Reset</button>
+    </>
+  );
+}`,
+effect: `function Counter() {
+  const [count, setCount] = useState(0);
+  const [dark, setDark] = useState(false);
+
+  useEffect(() => {
+    console.log("effect ran, count is", count);
+  }, [count]); // first render + whenever count changes
+
+  return (
+    <div className={dark ? "dark" : "light"}>
+      <h2>{count}</h2>
+      <button onClick={() => setCount(prev => prev - 1)}>−</button>
+      <button onClick={() => setCount(prev => prev + 1)}>+</button>
+      <button onClick={() => setDark(prev => !prev)}>Toggle theme</button>
+    </div>
+  );
+}`,
+context: `const CountContext = createContext();
+
+function App() {
+  const [count, setCount] = useState(0);
+
+  return (
+    <CountContext.Provider value={{ count, setCount }}>
+      <Scoreboard />   {/* no props! */}
+      <Controls />     {/* no props! */}
+    </CountContext.Provider>
+  );
+}
+
+function Scoreboard() {
+  const { count } = useContext(CountContext);
+  return <h2>{count}</h2>;
+}
+
+function Controls() {
+  const { setCount } = useContext(CountContext);
+  return (
+    <>
+      <button onClick={() => setCount(prev => prev - 1)}>−</button>
+      <button onClick={() => setCount(prev => prev + 1)}>+</button>
+    </>
+  );
+}`,
+ref: `function Counter() {
+  const [count, setCount] = useState(0);
+  const clicks = useRef(0);       // remembered, no redraw
+  const inputRef = useRef(null);  // will point at the <input>
+
+  return (
+    <>
+      <h2>state: {count} · ref: {clicks.current}</h2>
+      <button onClick={() => { clicks.current += 1; }}>ref +1</button>
+      <button onClick={() => setCount(prev => prev + 1)}>state +1</button>
+
+      <input ref={inputRef} placeholder="Type here" />
+      <button onClick={() => inputRef.current.focus()}>Focus input</button>
+    </>
+  );
+}`,
+reducer: `function reducer(state, action) {
+  switch (action.type) {
+    case "increment": return { ...state, count: state.count + state.step };
+    case "decrement": return { ...state, count: state.count - state.step };
+    case "reset":     return { ...state, count: 0 };
+    case "setStep":   return { ...state, step: action.step };
+    default:          return state;
+  }
+}
+
+function Counter() {
+  const [state, dispatch] = useReducer(reducer, { count: 0, step: 1 });
+
+  return (
+    <>
+      <h2>{state.count}</h2>
+      <button onClick={() => dispatch({ type: "decrement" })}>−</button>
+      <button onClick={() => dispatch({ type: "increment" })}>+</button>
+      <button onClick={() => dispatch({ type: "reset" })}>Reset</button>
+      <select
+        value={state.step}
+        onChange={e => dispatch({ type: "setStep", step: Number(e.target.value) })}
+      >
+        <option value={1}>step 1</option>
+        <option value={5}>step 5</option>
+        <option value={10}>step 10</option>
+      </select>
+    </>
+  );
+}`
+};
+
+function highlight(src) {
+  const esc = src.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return esc.split("\n").map(line => {
+    let out = line.replace(/"[^"\n]*"/g, m => '<span class="c-str">' + m + '</span>');
+    out = out.replace(/\b(useState|useEffect|useContext|useRef|useReducer|createContext)\b/g, '<span class="c-hook">$1</span>');
+    const i = out.indexOf("//");
+    if (i !== -1) out = out.slice(0, i) + '<span class="c-com">' + out.slice(i) + '</span>';
+    return out;
+  }).join("\n");
+}
+document.querySelectorAll("pre[data-code]").forEach(pre => {
+  pre.innerHTML = highlight(CODE[pre.dataset.code]);
+});
+
+// ---------- Live demos (same logic, written without JSX) ----------
+const { useState, useEffect, useContext, useRef, useReducer, useCallback, createContext, memo } = React;
+const h = React.createElement;
+let logId = 0;
+
+function useLog() {
+  const [items, setItems] = useState([]);
+  const add = useCallback(text => {
+    setItems(prev => [{ id: ++logId, text }, ...prev].slice(0, 6));
+  }, []);
+  return [items, add];
+}
+function Log({ items, empty }) {
+  return h("ul", { className: "log", "aria-live": "polite" },
+    items.length === 0
+      ? h("li", { className: "empty" }, empty)
+      : items.map(it => h("li", { key: it.id }, it.text)));
+}
+function Btn({ children, onClick, primary, sq }) {
+  return h("button", { type: "button", onClick, className: [primary && "primary", sq && "sq"].filter(Boolean).join(" ") }, children);
+}
+
+// useState
+function StateDemo() {
+  const [count, setCount] = useState(0);
+  const [log, add] = useLog();
+  return h(React.Fragment, null,
+    h("div", { className: "big" }, count),
+    h("div", { className: "row" },
+      h(Btn, { sq: true, onClick: () => { setCount(p => p - 1); add(`setCount(prev => prev - 1)  →  ${count - 1}`); } }, "−"),
+      h(Btn, { sq: true, primary: true, onClick: () => { setCount(p => p + 1); add(`setCount(prev => prev + 1)  →  ${count + 1}`); } }, "+"),
+      h(Btn, { onClick: () => { setCount(0); add("setCount(0)  →  0"); } }, "Reset")),
+    h(Log, { items: log, empty: "Each state update will show up here." }));
+}
+
+// useEffect: the counter is memoised so the log updates don't add extra renders to its count
+const EffectCounter = memo(function EffectCounter({ onEffect }) {
+  const [count, setCount] = useState(0);
+  const [dark, setDark] = useState(false);
+  const renders = useRef(0);
+  renders.current += 1;
+
+  useEffect(() => {
+    onEffect(count);
+  }, [count, onEffect]);
+
+  return h("div", { className: "themed " + (dark ? "dark" : "light") },
+    h("div", { className: "big" }, count),
+    h("div", { className: "row" },
+      h(Btn, { sq: true, onClick: () => setCount(p => p - 1) }, "−"),
+      h(Btn, { sq: true, primary: true, onClick: () => setCount(p => p + 1) }, "+"),
+      h(Btn, { onClick: () => setDark(p => !p) }, "Toggle theme")),
+    h("p", { className: "stats", style: { marginTop: 10, color: "inherit" } },
+      h("span", null, "renders: ", h("b", { style: { color: "inherit" } }, renders.current))));
+});
+function EffectDemo() {
+  const [log, add] = useLog();
+  const [runs, setRuns] = useState(0);
+  const onEffect = useCallback(count => {
+    setRuns(r => r + 1);
+    add(`effect ran, count is ${count}`);
+  }, [add]);
+  return h(React.Fragment, null,
+    h(EffectCounter, { onEffect }),
+    h("div", { className: "stats" }, h("span", null, "effect runs: ", h("b", null, runs))),
+    h(Log, { items: log, empty: "Waiting for the first effect…" }));
+}
+
+// useContext
+const CountContext = createContext();
+function Scoreboard() {
+  const { count } = useContext(CountContext);
+  return h("div", { className: "node" }, h("span", { className: "tag" }, "<Scoreboard />"), h("div", { className: "big" }, count));
+}
+function Controls() {
+  const { setCount } = useContext(CountContext);
+  return h("div", { className: "node" }, h("span", { className: "tag" }, "<Controls />"),
+    h("div", { className: "row" },
+      h(Btn, { sq: true, onClick: () => setCount(p => p - 1) }, "−"),
+      h(Btn, { sq: true, primary: true, onClick: () => setCount(p => p + 1) }, "+")));
+}
+function ContextDemo() {
+  const [count, setCount] = useState(0);
+  return h(CountContext.Provider, { value: { count, setCount } },
+    h("div", { className: "tree" },
+      h("div", { className: "node provider" },
+        h("span", { className: "tag" }, `<CountContext.Provider value={{ count: ${count}, setCount }}>`),
+        h("div", { className: "kids" }, h(Scoreboard), h(Controls)))));
+}
+
+// useRef: counter is memoised so the log can update without redrawing it
+const RefCounter = memo(function RefCounter({ onLog }) {
+  const [count, setCount] = useState(0);
+  const clicks = useRef(0);
+  const inputRef = useRef(null);
+  return h(React.Fragment, null,
+    h("div", { className: "big", style: { fontSize: "2.4rem" } }, `state: ${count} · ref: ${clicks.current}`),
+    h("div", { className: "row" },
+      h(Btn, { onClick: () => { clicks.current += 1; onLog(`clicks.current = ${clicks.current}  (screen not redrawn)`); } }, "ref +1"),
+      h(Btn, { primary: true, onClick: () => { setCount(p => p + 1); onLog(`setCount → redraw, ref now shows ${clicks.current}`); } }, "state +1")),
+    h("div", { className: "row" },
+      h("input", { id: "ref-input", ref: inputRef, placeholder: "Type here", "aria-label": "Practice input" }),
+      h(Btn, { onClick: () => { inputRef.current.focus(); onLog("inputRef.current.focus()"); } }, "Focus input")));
+});
+function RefDemo() {
+  const [log, add] = useLog();
+  return h(React.Fragment, null,
+    h(RefCounter, { onLog: add }),
+    h(Log, { items: log, empty: "The log shows the real ref value, even when the screen doesn't change." }));
+}
+
+// useReducer
+function reducer(state, action) {
+  switch (action.type) {
+    case "increment": return { ...state, count: state.count + state.step };
+    case "decrement": return { ...state, count: state.count - state.step };
+    case "reset": return { ...state, count: 0 };
+    case "setStep": return { ...state, step: action.step };
+    default: return state;
+  }
+}
+function ReducerDemo() {
+  const [state, dispatch] = useReducer(reducer, { count: 0, step: 1 });
+  const [log, add] = useLog();
+  const send = action => {
+    const next = reducer(state, action);
+    dispatch(action);
+    const a = action.type === "setStep" ? `{ type: "setStep", step: ${action.step} }` : `{ type: "${action.type}" }`;
+    add(`${a}  →  { count: ${next.count}, step: ${next.step} }`);
+  };
+  return h(React.Fragment, null,
+    h("div", { className: "big" }, state.count),
+    h("div", { className: "row" },
+      h(Btn, { sq: true, onClick: () => send({ type: "decrement" }) }, "−"),
+      h(Btn, { sq: true, primary: true, onClick: () => send({ type: "increment" }) }, "+"),
+      h(Btn, { onClick: () => send({ type: "reset" }) }, "Reset"),
+      h("select", { id: "reducer-step", "aria-label": "Step size", value: state.step, onChange: e => send({ type: "setStep", step: Number(e.target.value) }) },
+        [1, 5, 10].map(n => h("option", { key: n, value: n }, "step " + n)))),
+    h(Log, { items: log, empty: "Each dispatched action and the new state will show up here." }));
+}
+
+const mount = (id, C) => ReactDOM.createRoot(document.getElementById(id)).render(h(C));
+mount("demo-state", StateDemo);
+mount("demo-effect", EffectDemo);
+mount("demo-context", ContextDemo);
+mount("demo-ref", RefDemo);
+mount("demo-reducer", ReducerDemo);
+</script>
+
+</html>
